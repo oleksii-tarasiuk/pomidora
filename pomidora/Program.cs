@@ -32,6 +32,8 @@ namespace pomidora
         internal static int m_penaltyIncrement;
         // current state
         internal static DateTime m_checkpoint = DateTime.Now;
+        internal static TimeSpan m_checkpointDelta = TimeSpan.Zero;
+        internal static State m_stateToResume = State.Initial;
         internal static State m_state = State.Initial;
         internal static int m_penalty = 0;
         internal static bool m_isClosing = false;
@@ -68,7 +70,7 @@ namespace pomidora
 #endif
         }
 
-        internal static Exception logicError() { return new Exception("Program internal logic error.");  }
+        internal static Exception logicError() { return new Exception("Program internal logic error."); }
         private static void beep()
         {
             if (m_numBeeps > 0)
@@ -104,6 +106,11 @@ namespace pomidora
                 }
             }
         }
+        internal static void takeBreak()
+        {
+            m_state = State.Break;
+            m_checkpoint = DateTime.Now.AddSeconds(m_breakSeconds + m_penalty);
+        }
 
         internal static void postpone()
         {
@@ -126,6 +133,24 @@ namespace pomidora
             m_penalty = 0;
             m_state = State.Allowed;
             m_mainForm.updateState();
+        }
+        internal static void rewind()
+        {
+            go();
+        }
+        internal static void pause()
+        {
+            Debug.Assert(m_state != State.Pause);
+            m_checkpointDelta = m_checkpoint - DateTime.Now;
+            m_stateToResume = m_state;
+            m_state = State.Pause;
+        }
+        internal static void resume()
+        {
+            Debug.Assert(m_state == State.Pause);
+            m_checkpoint = DateTime.Now + m_checkpointDelta;
+            m_state = m_stateToResume;
+            m_stateToResume = State.Initial;
         }
         internal static void quit()
         {
